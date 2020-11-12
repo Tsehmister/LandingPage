@@ -103,7 +103,7 @@ window.addEventListener('DOMContentLoaded', () => {
 
     const modalTrigger = document.querySelectorAll('[data-modal]'); // используем квадратные скобки, потому что атрибут
     const modal = document.querySelector('.modal'); // тут класс 'modal'
-    const modalCloseButton = document.querySelector('[data-close]');
+
 
 
 
@@ -126,16 +126,13 @@ window.addEventListener('DOMContentLoaded', () => {
     function closeModal() {
         modal.classList.add('hide');
         modal.classList.remove('show');
-
         // modal.classList.toggle('show'); // это вариант С помощью тогла
         document.body.style.overflow = ''; // отменяем блокировку прокрутки
     }
 
 
-    modalCloseButton.addEventListener('click', closeModal);
-
     modal.addEventListener('click', (e) => {
-        if (e.target === modal) {
+        if (e.target === modal || e.target.getAttribute('data-close') == '') {
             closeModal();
         }
 
@@ -147,7 +144,7 @@ window.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    // const modalTimerId = setTimeout(openModal, 3000);
+    const modalTimerId = setTimeout(openModal, 50000);
 
     function showModalByScroll() {
 
@@ -266,38 +263,67 @@ window.addEventListener('DOMContentLoaded', () => {
             const statusMessage = document.createElement('div');
             statusMessage.classList.add('status');
             statusMessage.textContent = message.loading;
+            statusMessage.style.cssText = `
+            display: block;
+            margin: 0 auto;
+            `;
             form.append(statusMessage);
 
-            const request = new XMLHttpRequest();
-            request.open('POST', 'server.php');
 
-            request.setRequestHeader('Content-type', 'aplication/json');
+
+            // request.setRequestHeader('Content-type', 'aplication/json');
 
             const formData = new FormData(form);
 
             const object = {};
+
             formData.forEach(function (value, key) {
                 object[key] = value;
             });
 
-            const json = JSON.stringify(object);
 
-            request.send(json);
 
-            request.addEventListener('load', () => {
-                if (request.status === 200) {
-                    console.log(request.response);
-                    statusMessage.textContent = message.success;
-                    form.reset();
-                    setTimeout(() => { // овищаем формы ввода 
-                        statusMessage.remove();
-                    }, 2000);
-                } else {
-                    statusMessage.textContent = message.failure;
+            fetch('server.php', {
+                method: 'POST',
+                headers: {
+                    'Content-type': 'aplication/json'
+                },
+                body: JSON.stringify(object)
 
-                }
-            });
+            }).then(data => data.text()).then(data => {
+                console.log(data);
+                showThanksModal(message.success);
+                form.reset();
+                statusMessage.remove();
+            }).catch(() => {
+                showThanksModal(message.failure);
+            }).finally(() => {
+                form.reset();
+            })
 
         });
+    }
+
+    function showThanksModal(message) {
+        const prevModalDialog = document.querySelector('.modal__dialog');
+        prevModalDialog.classList.add('hide');
+        openModal();
+        const thanksModal = document.createElement('div');
+        thanksModal.classList.add('modal__dialog');
+        thanksModal.innerHTML = `
+        <div class="modal__contet">
+            <div class="modal__close" data-close>×</div>
+            <div class="modal__title">${message}</div>
+        </div>
+        
+        `;
+        document.querySelector('.modal').append(thanksModal);
+        setTimeout(() => {
+            thanksModal.remove();
+            prevModalDialog.classList.add('show');
+            prevModalDialog.classList.remove('hide');
+            closeModal();
+
+        }, 4000);
     }
 });
